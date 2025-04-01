@@ -76,3 +76,85 @@ plt.show()
 p=scatter_matrix(df,figsize=(20,20))
 # Seaborn for better visualization
 p=sns.pairplot(df_copy,hue='Outcome')
+# Correlation heatmap befire data cleaning
+plt.figure (figsize=(12,10))
+p=sns.heatmap(df.corr(),annot=True,cmap="YlGnBu")
+# Correlation heatmap after data cleaning
+plt.figure(figsize=(12,10))
+p=sns.heatmap(df_copy.corr(),annot=True,cmap="YlGnBu")
+# print first 5 rows
+df_copy.head()
+# Standardize feature values for better KNN performance
+sc_x=StandardScaler()
+x=pd.DataFrame(sc_x.fit_transform(df_copy.drop(["Outcome"],axis=1)),columns=['Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness', 'Insulin',
+       'BMI', 'DiabetesPedigreeFunction', 'Age'])
+x.head()
+y=df_copy.Outcome
+y
+# Split data into training and testing sets
+x_train,x_test,y_train,y_test=train_test_split(x,y,test_size=1/3,random_state=42,stratify=y)
+# Find the best K value using training and testing scores
+test_score=[]
+train_score=[]
+for i in range(1,15):
+  knn=KNeighborsClassifier(n_neighbors=i)
+  knn.fit(x_train,y_train)
+  train_score.append(knn.score(x_train,y_train))
+  test_score.append(knn.score(x_test,y_test))
+train_score
+train_score
+# Print best K values
+max_train_score=max(train_score)
+train_score_ind=[i for i,v in enumerate(train_score) if v==max_train_score]
+print("Max train score {} % and k = {}".format(max_train_score*100,list(map(lambda x:x+1,train_score_ind))))
+max_test_score=max(test_score)
+test_score_ind=[i for i,v in enumerate(test_score) if v==max_test_score]
+print("Max test score {} % and k = {}".format(max_test_score*100,list(map(lambda x:x+1,test_score_ind))))
+# Plot accuracy vs number of neighbors (K)
+plt.figure(figsize=(12,5))
+plt.plot(range(1,15),test_score,color="blue",label="Testing Accuracy")
+plt.plot(range(1,15),train_score,color="red",label="Training Accuracy")
+plt.legend()
+# Train KNN model with optimal K=11
+knn=KNeighborsClassifier(n_neighbors=11)
+knn.fit(x_train,y_train)
+knn.score(x_test,y_test)
+# Plot decision regions
+value = 20000
+width = 20000
+
+plot_decision_regions(x.values, y.values, clf=knn, legend=2,
+                      filler_feature_values={2: value, 3: value, 4: value, 5: value, 6: value, 7: value},
+                      filler_feature_ranges={2: width, 3: width, 4: width, 5: width, 6: width, 7: width},
+                      X_highlight=x_test.values)
+
+plt.title('KNN with Diabetes Dataset')
+plt.show()
+
+import matplotlib.pyplot as plt
+from mlxtend.plotting import plot_decision_regions
+
+# Select only two features (e.g., Glucose and BMI)
+x = x[['Glucose', 'BMI']]  # This selects only 'Glucose' and 'BMI' columns
+y = y  # Keep the target variable (Outcome)
+
+# Fit the KNN model (already done in your previous steps)
+knn.fit(x, y)
+
+# Plot the decision regions for these two features
+plot_decision_regions(X=x.values, y=y.values, clf=knn, legend=2)
+
+# Title for the plot
+plt.title('KNN with Diabetes Dataset')
+plt.show()
+# Predictions on test set
+y_pred=knn.predict(x_test)
+# Generate confusion matrix and heatmap
+cnf_matrix=metrics.confusion_matrix(y_test,y_pred)
+p=sns.heatmap(pd.DataFrame(cnf_matrix),annot=True,cmap="YlGnBu")
+plt.title("Confusion matrix",y=1.1)
+plt.ylabel("Actual label")
+plt.xlabel("Predicted label")
+
+# Classification report
+print(classification_report(y_test,y_pred))
