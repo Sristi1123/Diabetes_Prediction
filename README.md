@@ -158,3 +158,74 @@ plt.xlabel("Predicted label")
 
 # Classification report
 print(classification_report(y_test,y_pred))
+
+import joblib
+joblib.dump(knn, "knn_model.pkl")
+joblib.dump(sc_x, "scaler.pkl")
+
+# =============================================
+# INTERACTIVE PREDICTION WIDGET
+# =============================================
+import ipywidgets as widgets
+from IPython.display import display, clear_output
+
+# Define sliders for user input
+pregnancies = widgets.IntSlider(min=0, max=20, value=1, description="Pregnancies")
+glucose = widgets.IntSlider(min=50, max=200, value=100, description="Glucose")
+bp = widgets.IntSlider(min=40, max=150, value=70, description="Blood Pressure")
+skin = widgets.IntSlider(min=0, max=100, value=20, description="Skin Thickness")
+insulin = widgets.IntSlider(min=0, max=900, value=30, description="Insulin")
+bmi = widgets.FloatSlider(min=10, max=60, value=25.0, description="BMI")
+dpf = widgets.FloatSlider(min=0.0, max=3.0, value=0.5, description="DPF")
+age = widgets.IntSlider(min=10, max=100, value=30, description="Age")
+
+# Output area
+output = widgets.Output()
+
+# Function to predict diabetes
+def predict_diabetes(b):
+    with output:
+        clear_output(wait=True)
+
+        user_data = np.array([[pregnancies.value, glucose.value, bp.value, skin.value,
+                             insulin.value, bmi.value, dpf.value, age.value]])
+        user_data_scaled = sc_x.transform(user_data)
+        prediction = knn.predict(user_data_scaled)[0]
+        probability = knn.predict_proba(user_data_scaled)[0][1]
+
+        # Set emoji-based feedback
+        if prediction == 1:
+            emoji = "⚠️"
+            message = f"{emoji} High Diabetes Risk! ({probability:.2%})"
+            color = "red"
+        else:
+            emoji = "🎉"
+            message = f"{emoji} Low Diabetes Risk! ({probability:.2%})"
+            color = "green"
+
+        # Show result
+        print(message)
+
+        # Enhanced Visual Feedback (Gradient Progress Bar)
+        fig, ax = plt.subplots(figsize=(6, 1.2))
+        ax.barh([""], [probability], color=sns.color_palette("coolwarm", as_cmap=True)(probability), height=0.5)
+        ax.set_xlim(0, 1)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.spines["bottom"].set_visible(False)
+        ax.spines["left"].set_visible(False)
+        ax.text(probability/2, 0, f"{probability:.1%}", va="center", ha="center",
+                fontsize=12, color="white", weight="bold")
+
+        plt.title("Diabetes Risk Probability", fontsize=14, weight="bold", color=color)
+        plt.show()
+
+# Create a button
+button = widgets.Button(description="🚀 Predict Now")
+button.on_click(predict_diabetes)
+
+# Display UI
+print("\n\n=== Diabetes Risk Prediction Tool ===")
+display(pregnancies, glucose, bp, skin, insulin, bmi, dpf, age, button, output)
